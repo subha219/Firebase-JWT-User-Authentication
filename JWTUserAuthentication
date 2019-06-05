@@ -1,0 +1,63 @@
+//  First load the Firebase JSON private key into a string.
+Chilkat.FileAccess fac = new Chilkat.FileAccess();
+string jsonKey = fac.ReadEntireTextFile("qa_data/firebase/fish-8abda-firebase-adminsdk-1ys3o-347d70d581.json","utf-8");
+if (fac.LastMethodSuccess != true) {
+    Debug.WriteLine(fac.LastErrorText);
+    return;
+}
+
+//  A JSON private key looks like this:
+
+//  {
+//    "type": "service_account",
+//    "project_id": "fish-8abda",
+//    "private_key_id": "347e70d5810b92516905d2de12d292c16159375b",
+//    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9 ...  KQRtMB1gBu3KQxgoA==\n-----END PRIVATE KEY-----\n",
+//    "client_email": "firebase-adminsdk-1ys3o@fish-8abda.iam.gserviceaccount.com",
+//    "client_id": "107827947504591332107",
+//    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+//    "token_uri": "https://accounts.google.com/o/oauth2/token",
+//    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+//    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-1ys3o%40fish-8abda.iam.gserviceaccount.com"
+//  }
+
+Chilkat.AuthGoogle gAuth = new Chilkat.AuthGoogle();
+gAuth.JsonKey = jsonKey;
+
+//  Choose a scope.
+//  The scope could be "https://www.googleapis.com/auth/firebase.database"
+//  or
+//  "https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email"
+
+gAuth.Scope = "https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email";
+
+//  Request an access token that is valid for this many seconds.
+gAuth.ExpireNumSeconds = 3600;
+
+//  If the application is requesting delegated access:
+//  The email address of the user for which the application is requesting delegated access,
+//  then set the email address here. (Otherwise leave it empty.)
+gAuth.SubEmailAddress = "";
+
+//  Connect to www.googleapis.com using TLS (TLS 1.2 is the default.)
+//  The Chilkat socket object is used so that the connection can be established
+//  through proxies or an SSH tunnel if desired.
+Chilkat.Socket tlsSock = new Chilkat.Socket();
+bool success = tlsSock.Connect("www.googleapis.com",443,true,5000);
+if (success != true) {
+    Debug.WriteLine(tlsSock.LastErrorText);
+    return;
+}
+
+//  Send the request to obtain the access token.
+success = gAuth.ObtainAccessToken(tlsSock);
+if (success != true) {
+    Debug.WriteLine(gAuth.LastErrorText);
+    return;
+}
+
+//  Examine the access token:
+Debug.WriteLine("Firebase Access Token: " + gAuth.AccessToken);
+
+//  Save the token to a file (or wherever desired).  This token is valid for 1 hour.
+fac.WriteEntireTextFile("qa_data/tokens/firebaseToken.txt",gAuth.AccessToken,"utf-8",false);
